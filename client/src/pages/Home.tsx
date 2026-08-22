@@ -474,8 +474,8 @@ function Recommendation({ icon: Icon, title, text, tone }: any) {
   );
 }
 
-function StudentDashboard({ onRequest, active = "Home" }: { onRequest: () => void; active?: string }) {
-  if (active !== "Home") return <StudentSection active={active} onRequest={onRequest} />;
+function StudentDashboard({ onRequest, active = "Home", setActive }: { onRequest: () => void; active?: string; setActive?: (s: string) => void }) {
+  if (active !== "Home") return <StudentSection active={active} onRequest={onRequest} onGoHome={() => setActive && setActive("Home")} />;
 
   return (
     <main className="mobile-content mx-auto max-w-[1440px]">
@@ -517,7 +517,7 @@ function StudentDashboard({ onRequest, active = "Home" }: { onRequest: () => voi
             <Stat label="Sleep" value="6h 42m" />
           </div>
           <button
-            onClick={() => toast.success("Check-in flow ready")}
+            onClick={() => setActive && setActive("Check-in")}
             className="btn btn-teal mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[12px] font-bold"
           >
             Complete today’s check-in <ChevronRight size={15} />
@@ -1390,7 +1390,7 @@ function DashboardApp({ onLogout }: { onLogout: () => void }) {
             onReturn={() => setLocation("/counselor")}
           />
         ) : role === "student" ? (
-          <StudentDashboard active={active} onRequest={() => setSessionModalOpen(true)} />
+          <StudentDashboard active={active} onRequest={() => setSessionModalOpen(true)} setActive={setActive} />
         ) : role === "counselor" ? (
           /* Counselor Views Rendering */
           active === "CasesDetail" && selectedCase ? (
