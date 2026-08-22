@@ -1,9 +1,9 @@
-/* Quiet Observatory: public entry points lead to auth first; role-specific dashboards remain behind the authenticated shell. */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { PortalProvider } from "./contexts/PortalContext";
 import Home from "./pages/Home";
 
 function Router() {
@@ -19,10 +19,12 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <PortalProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </PortalProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
