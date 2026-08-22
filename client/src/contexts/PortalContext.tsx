@@ -1,5 +1,9 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
+import {
+  counselorApi, adminApi, notificationsApi, messagesApi,
+  getAccessToken
+} from "../services/api";
 
 export type Role = "student" | "counselor" | "admin";
 
@@ -333,6 +337,108 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [activeThreadId, setActiveThreadId] = useState<string>("STU-2048");
   const [counselors, setCounselors] = useState<CounselorAccount[]>(initialCounselors);
   const [notifications, setNotifications] = useState<PortalNotification[]>(initialNotifications);
+
+  // ── Load live data when role changes and user is authenticated ──
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    if (role === "counselor") {
+      // Load counselor cases
+      counselorApi.getCases().then((res) => {
+        const apiCases: StudentCase[] = (res.data ?? []).map((c: any) => ({
+          id: c.anonymous_id ?? c.id,
+          risk: (c.risk_level ?? "LOW").toUpperCase() as "HIGH" | "MEDIUM" | "LOW",
+          score: c.risk_score ?? 50,
+          trend: c.trend ?? "Stable",
+          trendDirection: c.trend === "Declining" ? "down" : c.trend === "Improving" ? "up" : "flat",
+          lastCheckIn: c.last_checkin ?? "—",
+          detectedTime: c.created_at ?? "—",
+          primarySignal: c.primary_signal ?? "Wellness monitoring",
+          status: c.status ?? "New",
+          assignedCounselor: c.assigned_counselor ?? "Unassigned",
+          riskFactors: c.risk_factors ?? [],
+          sharedNotes: c.notes ?? "",
+          history: c.history ?? [],
+        }));
+        if (apiCases.length > 0) {
+          setCases(apiCases);
+          setSelectedCase(apiCases[0]);
+        }
+      }).catch(() => { /* keep mock data */ });
+
+      // Load counselor appointments
+      counselorApi.getAppointments().then((res) => {
+        const apiApts: Appointment[] = (res.data ?? []).map((a: any) => ({
+          id: a.id,
+          studentId: a.student_anonymous_id ?? a.student_id,
+          counselorName: a.counselor_name ?? "Your Counselor",
+          date: a.scheduled_start ? new Date(a.scheduled_start).toLocaleDateString() : "TBD",
+          time: a.scheduled_start ? new Date(a.scheduled_start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "TBD",
+          mode: (a.mode ?? "video").charAt(0).toUpperCase() + (a.mode ?? "video").slice(1) as "In-person" | "Video" | "Phone",
+          topic: a.session_type ?? "Wellness Support",
+          status: (a.status ?? "scheduled").charAt(0).toUpperCase() + (a.status ?? "scheduled").slice(1) as "Scheduled" | "Completed" | "Cancelled",
+          durationMinutes: a.duration_minutes ?? 30,
+          summaryNotes: a.session_record ? {
+            discussionAreas: a.session_record.discussion_topics ?? "",
+            recommendations: a.session_record.recommendations ?? "",
+            followUpRequired: a.session_record.follow_up_required ?? false,
+            followUpDate: a.session_record.next_follow_up_date,
+          } : undefined,
+        }));
+        if (apiApts.length > 0) setAppointments(apiApts);
+      }).catch(() => { /* keep mock data */ });
+
+      // Load message threads
+      messagesApi.getConversations().then((res) => {
+        const apiThreads: MessageThread[] = (res.data ?? []).map((t: any) => ({
+          studentId: t.student_anonymous_id ?? t.id,
+          lastMessage: t.last_message ?? "",
+          lastTime: t.last_time ?? "—",
+          unread: t.unread_count > 0,
+          messages: (t.messages ?? []).map((m: any) => ({
+            id: m.id,
+            sender: m.sender_role === "counselor" ? "counselor" : "student",
+            text: m.content,
+            time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—",
+          })),
+        }));
+        if (apiThreads.length > 0) setThreads(apiThreads);
+      }).catch(() => { /* keep mock data */ });
+    }
+
+    if (role === "admin") {
+      // Load counselor list
+      adminApi.getCounselors().then((res) => {
+        const apiCounselors: CounselorAccount[] = (res.data ?? []).map((c: any) => ({
+          id: c.id,
+          name: c.full_name ?? "Unknown",
+          empId: c.employee_id ?? "—",
+          department: c.department ?? "—",
+          status: (c.approval_status === "approved" ? "Active" : c.approval_status === "pending" ? "Pending" : "Rejected") as "Active" | "Pending" | "Rejected",
+          casesCount: c.active_cases ?? 0,
+          sessionsCount: c.total_sessions ?? 0,
+          responseTime: c.avg_response_time ?? "—",
+          email: c.email ?? "—",
+        }));
+        if (apiCounselors.length > 0) setCounselors(apiCounselors);
+      }).catch(() => { /* keep mock data */ });
+    }
+
+    // Load notifications for all roles
+    notificationsApi.getNotifications().then((res) => {
+      const apiNotifs: PortalNotification[] = (res.data ?? []).map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        desc: n.body ?? n.description ?? "",
+        time: n.created_at ? new Date(n.created_at).toLocaleString() : "—",
+        targetRole: (n.target_role ?? role) as Role,
+        linkTab: n.link_tab,
+      }));
+      if (apiNotifs.length > 0) setNotifications(apiNotifs);
+    }).catch(() => { /* keep mock data */ });
+
+  }, [role]);
 
   const setRole = (newRole: Role) => {
     setRoleState(newRole);
