@@ -58,6 +58,7 @@ def get_today_checkin(
             "sleep_hours": latest.sleep_hours,
             "sleep_quality": latest.sleep_quality,
             "wellness_score": latest.wellness_score,
+            "risk_indicator": latest.risk_indicator,
             "emotion_label": latest.emotion_label,
             "risk_level": latest.risk_level.value,
             "created_at": latest.created_at
@@ -88,6 +89,7 @@ def get_checkin_history(
             "energy_score": r.energy_score,
             "sleep_hours": r.sleep_hours,
             "wellness_score": r.wellness_score,
+            "risk_indicator": r.risk_indicator,
             "emotion_label": r.emotion_label,
             "risk_level": r.risk_level.value,
             "created_at": r.created_at

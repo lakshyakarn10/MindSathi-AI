@@ -95,7 +95,7 @@ def get_my_appointments(
         counselor_name = a.counselor.user.full_name if a.counselor and a.counselor.user else "Campus Counselor"
         results.append({
             "id": a.id,
-            "counselor_name": f"Dr. {counselor_name}",
+            "counselor_name": counselor_name,
             "counselor_role": a.counselor.professional_role if a.counselor else "Counselor",
             "session_type": a.session_type,
             "mode": a.mode.value,
@@ -104,7 +104,10 @@ def get_my_appointments(
             "scheduled_end": a.scheduled_end,
             "duration_minutes": a.duration_minutes,
             "status": a.status.value,
-            "student_notes": a.student_notes
+            "student_notes": a.student_notes,
+            "meet_url": a.meet_url,
+            "location": a.location,
+            "rejection_reason": a.rejection_reason
         })
 
     return {"success": True, "data": results}

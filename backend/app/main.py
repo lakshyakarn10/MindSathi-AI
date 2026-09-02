@@ -24,13 +24,23 @@ app = FastAPI(
 
 # CORS Configuration
 origins = settings.FRONTEND_ORIGIN if isinstance(settings.FRONTEND_ORIGIN, list) else [settings.FRONTEND_ORIGIN]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if "*" in origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Request Timing & Structured Logging Middleware
 @app.middleware("http")

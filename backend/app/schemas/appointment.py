@@ -26,6 +26,9 @@ class AppointmentRead(BaseModel):
     status: str
     student_notes: Optional[str] = None
     counselor_notes: Optional[str] = None
+    meet_url: Optional[str] = None
+    location: Optional[str] = None
+    rejection_reason: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -34,6 +37,19 @@ class AppointmentRead(BaseModel):
 class RescheduleRequest(BaseModel):
     new_start: datetime
     message: Optional[str] = None
+
+class SuggestTimeRequest(BaseModel):
+    new_start: datetime
+    message: Optional[str] = None
+
+class RejectionRequest(BaseModel):
+    rejection_reason: Optional[str] = None
+
+class MeetUrlRequest(BaseModel):
+    meet_url: str = Field(..., min_length=8, max_length=512, description="Google Meet / Video session HTTPS URL")
+
+class LocationRequest(BaseModel):
+    location: str = Field(..., min_length=1, max_length=255, description="In-person office/room location")
 
 class CancelRequest(BaseModel):
     reason: Optional[str] = "Student requested cancellation"

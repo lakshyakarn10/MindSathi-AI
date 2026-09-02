@@ -3,7 +3,7 @@
  * Centralized, typed API service layer for communicating with the FastAPI backend.
  */
 
-const API_BASE_URL = "/api/v1";
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -173,6 +173,7 @@ export const checkinsApi = {
   },
 
   getToday: async () => apiRequest("/checkins/today"),
+  getTodayCheckin: async () => apiRequest("/checkins/today"),
   getHistory: async (page = 1, limit = 20) => apiRequest(`/checkins?page=${page}&limit=${limit}`),
 };
 
@@ -209,6 +210,9 @@ export const companionApi = {
       method: "POST",
       body: JSON.stringify({ message, conversation_id: conversationId }),
     }),
+  getConversations: async () => apiRequest("/companion/conversations"),
+  getHistory: async (conversationId?: string) =>
+    apiRequest(conversationId ? `/companion/history?conversation_id=${encodeURIComponent(conversationId)}` : "/companion/history"),
 };
 
 // -------------------------------------------------------------
@@ -258,6 +262,8 @@ export const appointmentsApi = {
     }),
 };
 
+export const appointmentApi = appointmentsApi;
+
 // -------------------------------------------------------------
 // 8. Counselor Workspace API
 // -------------------------------------------------------------
@@ -271,6 +277,7 @@ export const counselorApi = {
   },
 
   getCaseDetail: async (caseId: string) => apiRequest(`/counselor/cases/${caseId}`),
+  getCaseReport: async (caseId: string) => apiRequest(`/counselor/cases/${caseId}/report`),
   updateCase: async (caseId: string, data: { status?: string; notes?: string; assigned_counselor_id?: string }) =>
     apiRequest(`/counselor/cases/${caseId}`, {
       method: "PATCH",
@@ -282,6 +289,26 @@ export const counselorApi = {
     apiRequest(status ? `/counselor/appointments?status=${status}` : "/counselor/appointments"),
   acceptAppointment: async (appointmentId: string) =>
     apiRequest(`/counselor/appointments/${appointmentId}/accept`, { method: "PATCH" }),
+  rejectAppointment: async (appointmentId: string, rejectionReason?: string) =>
+    apiRequest(`/counselor/appointments/${appointmentId}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ rejection_reason: rejectionReason }),
+    }),
+  suggestAlternativeTime: async (appointmentId: string, newStart: string, message?: string) =>
+    apiRequest(`/counselor/appointments/${appointmentId}/suggest-time`, {
+      method: "PATCH",
+      body: JSON.stringify({ new_start: newStart, message }),
+    }),
+  setMeetUrl: async (appointmentId: string, meetUrl: string) =>
+    apiRequest(`/counselor/appointments/${appointmentId}/meet-url`, {
+      method: "PATCH",
+      body: JSON.stringify({ meet_url: meetUrl }),
+    }),
+  setLocation: async (appointmentId: string, location: string) =>
+    apiRequest(`/counselor/appointments/${appointmentId}/location`, {
+      method: "PATCH",
+      body: JSON.stringify({ location }),
+    }),
   completeAppointment: async (
     appointmentId: string,
     data: {
@@ -297,6 +324,26 @@ export const counselorApi = {
       body: JSON.stringify(data),
     }),
   getSessions: async () => apiRequest("/counselor/sessions"),
+  scheduleForStudent: async (data: {
+    student_ref: string; // anonymous ID e.g. "STU-2048" or student UUID
+    mode: string;
+    reason: string;
+    scheduled_start: string;
+    duration_minutes?: number;
+  }) =>
+    apiRequest("/counselor/appointments/schedule-for-student", {
+      method: "POST",
+      body: JSON.stringify({
+        counselor_id: data.student_ref, // backend repurposes this field to find the student
+        mode: data.mode,
+        reason: data.reason,
+        scheduled_start: data.scheduled_start,
+        duration_minutes: data.duration_minutes ?? 45,
+        session_type: "individual",
+      }),
+    }),
+  getDirectory: async (institutionId?: string) =>
+    apiRequest(institutionId ? `/counselor/directory?institution_id=${encodeURIComponent(institutionId)}` : "/counselor/directory"),
 };
 
 // -------------------------------------------------------------
@@ -305,11 +352,15 @@ export const counselorApi = {
 export const messagesApi = {
   getConversations: async () => apiRequest("/messages"),
   getMessages: async (conversationId: string) => apiRequest(`/messages/${conversationId}`),
+  getAppointmentConversation: async (appointmentId: string) =>
+    apiRequest(`/messages/appointment/${appointmentId}/conversation`),
   sendMessage: async (content: string, conversationId?: string, receiverId?: string) =>
     apiRequest("/messages", {
       method: "POST",
       body: JSON.stringify({ content, conversation_id: conversationId, receiver_id: receiverId }),
     }),
+  markRead: async (conversationId: string) =>
+    apiRequest(`/messages/${conversationId}/read`, { method: "PATCH" }),
 };
 
 // -------------------------------------------------------------
@@ -336,6 +387,12 @@ export const adminApi = {
     apiRequest(`/admin/counselors/${counselorId}/approve`, { method: "PATCH" }),
   rejectCounselor: async (counselorId: string) =>
     apiRequest(`/admin/counselors/${counselorId}/reject`, { method: "PATCH" }),
+  getStudents: async () => apiRequest("/admin/students"),
+  getPendingStudents: async () => apiRequest("/admin/students/pending"),
+  approveStudent: async (studentId: string) =>
+    apiRequest(`/admin/students/${studentId}/approve`, { method: "PATCH" }),
+  rejectStudent: async (studentId: string) =>
+    apiRequest(`/admin/students/${studentId}/reject`, { method: "PATCH" }),
   createReport: async (type = "monthly_wellness", startDate?: string, endDate?: string) =>
     apiRequest("/admin/reports", {
       method: "POST",
@@ -343,6 +400,7 @@ export const adminApi = {
     }),
   getReports: async () => apiRequest("/admin/reports"),
   getAuditLogs: async (limit = 50) => apiRequest(`/admin/audit-logs?limit=${limit}`),
+  getPendingCount: async () => apiRequest("/admin/pending/count"),
 };
 
 // -------------------------------------------------------------
@@ -359,3 +417,25 @@ export const privacyApi = {
   exportData: async () => apiRequest("/privacy/export", { method: "POST" }),
   deleteAccount: async () => apiRequest("/privacy/account", { method: "DELETE" }),
 };
+
+// -------------------------------------------------------------
+// 13. Institutions (Public — no auth required)
+// -------------------------------------------------------------
+export interface Institution {
+  id: string;
+  name: string;
+  code: string;
+  country: string;
+  timezone: string;
+}
+
+export const institutionsApi = {
+  list: async (): Promise<Institution[]> => {
+    const res = await apiRequest<{ success: boolean; data: Institution[] }>(
+      "/institutions",
+      { requiresAuth: false }
+    );
+    return res.data ?? [];
+  },
+};
+

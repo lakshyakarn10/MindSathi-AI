@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: mindsaathi-backend
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && alembic upgrade head && python seed.py"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mindsaathi-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JOURNAL_ENCRYPTION_KEY
+        generateValue: true
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+databases:
+  - name: mindsaathi-db
+    databaseName: mindsaathi
+    user: mindsaathi
+    plan: free

@@ -10,9 +10,19 @@ export type UserRole = "student" | "counselor" | "admin";
 export interface AuthUser {
   id: string;
   email: string;
-  full_name: string;
+  name?: string;
+  full_name?: string;
   role: UserRole;
-  is_active: boolean;
+  is_active?: boolean;
+  is_verified?: boolean;
+  institution_id?: string | null;
+  institution_name?: string | null;
+  institution_code?: string | null;
+  department?: string;
+  year_of_study?: number;
+  anonymous_id?: string;
+  employee_id?: string;
+  verification_status?: string;
 }
 
 interface AuthContextType {

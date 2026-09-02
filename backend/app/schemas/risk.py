@@ -3,18 +3,24 @@ from datetime import datetime
 from pydantic import BaseModel
 
 class RiskFactorsDecomposition(BaseModel):
-    mood: int = 21
-    stress: int = 17
+    mood: int = 20
+    stress: int = 16
     sleep: int = 12
-    journal: int = 18
-    checkin: int = 14
-    crisis_indicator: int = 20
+    journal: int = 16
+    checkin: int = 12
+    behavioral_change: int = 0
+    crisis_indicator: int = 0
 
 class RiskProfileResponse(BaseModel):
-    risk_score: int
-    risk_level: str
-    factors: RiskFactorsDecomposition
-    trend: str
+    wellness_score: float = 74.0
+    risk_indicator: float = 3.0
+    risk_score: int = 28
+    risk_level: str = "low"
+    trend: str = "STABLE"
+    sudden_change: bool = False
+    behavioral_changes: Optional[Dict[str, Any]] = None
+    risk_factors: Optional[List[str]] = None
+    factors: Optional[RiskFactorsDecomposition] = None
     disclaimer: str = "Observational wellness indicator only. Not a medical or clinical diagnosis."
 
 class EscalationCaseRead(BaseModel):

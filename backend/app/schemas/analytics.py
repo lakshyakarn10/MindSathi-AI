@@ -83,11 +83,15 @@ class CompanionChatRequest(BaseModel):
     conversation_id: Optional[str] = None
 
 class CompanionChatResponse(BaseModel):
+    conversation_id: Optional[str] = None
     response: str
     suggested_topics: List[str] = []
     recommended_exercise: Optional[Dict[str, Any]] = None
     should_offer_counselor: bool = False
     crisis_detected: bool = False
+    observations: Optional[Dict[str, Any]] = None
+    model_used: Optional[str] = None
+    is_fallback: bool = False
 
 # Consent Schemas
 class ConsentUpdate(BaseModel):

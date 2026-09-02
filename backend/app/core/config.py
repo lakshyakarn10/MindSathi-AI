@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 
@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_LOGIN_PER_MINUTE: int = 10
     RATE_LIMIT_GENERAL_PER_MINUTE: int = 100
+
+    # Google Gemini AI Configuration
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-flash-lite-latest"
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),

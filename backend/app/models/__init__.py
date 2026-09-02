@@ -14,6 +14,8 @@ from app.models.notification import Notification, NotificationType
 from app.models.message import Conversation, Message
 from app.models.consent import ConsentRecord, ConsentType
 from app.models.audit import AuditLog
+# Phase 1 addition
+from app.models.companion import CompanionConversation, CompanionMessage, MessageRole
 
 __all__ = [
     "Base",
@@ -44,4 +46,8 @@ __all__ = [
     "ConsentRecord",
     "ConsentType",
     "AuditLog",
+    # Phase 1
+    "CompanionConversation",
+    "CompanionMessage",
+    "MessageRole",
 ]

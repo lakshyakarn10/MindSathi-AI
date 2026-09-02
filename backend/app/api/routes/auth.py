@@ -19,33 +19,47 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/signup", status_code=status.HTTP_201_CREATED, summary="Student Registration")
 def signup_student(req: StudentSignupRequest, db: Session = Depends(get_db)):
     user = register_student(db, req)
+    is_demo = req.email.lower().endswith("@mindsaathi.demo")
+    sp = user.student_profile
     return {
         "success": True,
-        "message": "Student account created successfully.",
-        "requires_verification": False,
+        "message": "Student account created successfully. Awaiting approval from your institution administrator." if not is_demo else "Demo student account ready.",
+        "requires_verification": not is_demo,
+        "pending_approval": not is_demo,
         "role": "student",
-        "anonymous_id": user.student_profile.anonymous_id if user.student_profile else None
+        "anonymous_id": sp.anonymous_id if sp else None,
+        "institution_name": sp.institution.name if sp and sp.institution else None,
     }
 
 @router.post("/signup/counselor", status_code=status.HTTP_201_CREATED, summary="Counselor Registration")
 def signup_counselor(req: CounselorSignupRequest, db: Session = Depends(get_db)):
-    register_counselor(db, req)
+    user = register_counselor(db, req)
+    is_demo = req.email.lower().endswith("@mindsaathi.demo")
+    cp = user.counselor_profile
     return {
         "success": True,
-        "message": "Counselor registration submitted for institutional verification.",
-        "requires_verification": True,
-        "role": "counselor"
+        "message": "Counselor registration submitted. Awaiting institutional verification by your administrator." if not is_demo else "Demo counselor account ready.",
+        "requires_verification": not is_demo,
+        "pending_approval": not is_demo,
+        "role": "counselor",
+        "institution_name": cp.institution.name if cp and cp.institution else None,
     }
 
 @router.post("/signup/admin", status_code=status.HTTP_201_CREATED, summary="Administrator Registration")
 def signup_admin(req: AdminSignupRequest, db: Session = Depends(get_db)):
-    register_admin(db, req)
+    user = register_admin(db, req)
+    ap = user.admin_profile
     return {
         "success": True,
-        "message": "Administrator account registered and authorized.",
+        "message": f"Administrator account created. Institution '{ap.institution.name if ap and ap.institution else req.institution_name}' is now registered on MindSaathi.",
         "requires_verification": False,
-        "role": "admin"
+        "pending_approval": False,
+        "role": "admin",
+        "institution_id": str(ap.institution.id) if ap and ap.institution else None,
+        "institution_name": ap.institution.name if ap and ap.institution else None,
+        "institution_code": ap.institution.code if ap and ap.institution else None,
     }
+
 
 @router.post("/login", response_model=TokenResponse, summary="User Login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
@@ -68,21 +82,40 @@ def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role.value,
         "is_active": current_user.is_active,
         "is_verified": current_user.is_verified,
-        "created_at": current_user.created_at
+        "created_at": current_user.created_at,
+        "institution_id": None,
+        "institution_name": None,
+        "institution_code": None,
     }
     if current_user.student_profile:
-        res["anonymous_id"] = current_user.student_profile.anonymous_id
-        res["department"] = current_user.student_profile.department
-        res["year_of_study"] = current_user.student_profile.year_of_study
-        res["onboarding_completed"] = current_user.student_profile.onboarding_completed
+        sp = current_user.student_profile
+        res["anonymous_id"] = sp.anonymous_id
+        res["department"] = sp.department
+        res["year_of_study"] = sp.year_of_study
+        res["verification_status"] = sp.verification_status.value if sp.verification_status else "approved"
+        res["onboarding_completed"] = sp.onboarding_completed
+        if sp.institution:
+            res["institution_id"] = str(sp.institution.id)
+            res["institution_name"] = sp.institution.name
+            res["institution_code"] = sp.institution.code
     elif current_user.counselor_profile:
-        res["professional_role"] = current_user.counselor_profile.professional_role
-        res["employee_id"] = current_user.counselor_profile.employee_id
-        res["department"] = current_user.counselor_profile.department
-        res["verification_status"] = current_user.counselor_profile.verification_status.value
+        cp = current_user.counselor_profile
+        res["professional_role"] = cp.professional_role
+        res["employee_id"] = cp.employee_id
+        res["department"] = cp.department
+        res["verification_status"] = cp.verification_status.value if cp.verification_status else "pending"
+        if cp.institution:
+            res["institution_id"] = str(cp.institution.id)
+            res["institution_name"] = cp.institution.name
+            res["institution_code"] = cp.institution.code
     elif current_user.admin_profile:
-        res["designation"] = current_user.admin_profile.designation
-        res["authorization_status"] = current_user.admin_profile.authorization_status.value
+        ap = current_user.admin_profile
+        res["designation"] = ap.designation
+        res["authorization_status"] = ap.authorization_status.value if ap.authorization_status else "authorized"
+        if ap.institution:
+            res["institution_id"] = str(ap.institution.id)
+            res["institution_name"] = ap.institution.name
+            res["institution_code"] = ap.institution.code
 
     return {"success": True, "data": res}
 

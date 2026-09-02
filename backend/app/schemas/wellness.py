@@ -25,6 +25,7 @@ class CheckinRead(BaseModel):
     sentiment_score: float
     emotion_label: str
     wellness_score: float
+    risk_indicator: float = Field(3.0, ge=1.0, le=10.0)
     risk_level: str
     created_at: datetime
 
@@ -34,6 +35,7 @@ class CheckinRead(BaseModel):
 class CheckinResponse(BaseModel):
     checkin_id: str
     wellness_score: float
+    risk_indicator: Optional[float] = Field(None, ge=1.0, le=10.0)
     risk_level: str
     emotion: str
     insights: List[str]

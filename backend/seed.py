@@ -28,13 +28,17 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
+DEMO_PASSWORD = "password123"
+
 def seed():
-    print("[*] Initializing MindSaathi Database Seed...")
+    print("[*] Initializing MindSaathi Database Seed (PostgreSQL)...")
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     try:
-        # 1. Institution
+        # ==============================================================
+        # 1. Institution — MindSaathi University of Technology
+        # ==============================================================
         inst = db.query(Institution).filter(Institution.code == "MSU-2026").first()
         if not inst:
             inst = Institution(
@@ -47,149 +51,19 @@ def seed():
             db.add(inst)
             db.commit()
             db.refresh(inst)
-            print("  [+] Created Institution:", inst.name)
+            print("  [+] Created Institution: MindSaathi University of Technology (MSU-2026)")
+        else:
+            print("  [=] Institution already exists: MSU-2026")
 
-        # 2. Exercises
-        exercises_data = [
-            {
-                "title": "Box Breathing",
-                "description": "Four-count nervous system regulation (Inhale 4s, Hold 4s, Exhale 4s, Rest 4s).",
-                "category": "breathing",
-                "duration_seconds": 120,
-                "instructions": "Sit comfortably with your back upright. Inhale deeply through the nose for 4 counts, hold for 4, exhale through the mouth for 4, and rest for 4.",
-                "recommended_for": "acute_stress"
-            },
-            {
-                "title": "5-4-3-2-1 Grounding",
-                "description": "Sensory physical awareness when thoughts feel scattered or crowded.",
-                "category": "grounding",
-                "duration_seconds": 300,
-                "instructions": "Notice 5 things you can see, 4 things you can physically feel, 3 things you can hear, 2 things you can smell, and 1 thing you can taste.",
-                "recommended_for": "panic_anxiety"
-            },
-            {
-                "title": "Thought Reframing",
-                "description": "Examine automatic anxious thoughts and establish constructive alternatives.",
-                "category": "cognitive",
-                "duration_seconds": 300,
-                "instructions": "Identify one worry currently occupying your mind. Ask yourself: What evidence supports this? What is a more balanced perspective?",
-                "recommended_for": "worry_rumination"
-            },
-            {
-                "title": "Sleep Routine Reset",
-                "description": "Progressive muscular relaxation and digital wind-down for restorative rest.",
-                "category": "sleep",
-                "duration_seconds": 480,
-                "instructions": "Dim surrounding lights. Progressively tense and release muscles starting from your toes up to your shoulders while breathing gently.",
-                "recommended_for": "insomnia_fatigue"
-            },
-            {
-                "title": "Exam Stress Decompression",
-                "description": "Structured mental reset between intensive study sessions.",
-                "category": "cognitive",
-                "duration_seconds": 240,
-                "instructions": "Step away from screens. Take five deep belly breaths, stretch your neck and shoulders, and sip water.",
-                "recommended_for": "exam_pressure"
-            }
-        ]
-
-        for ex in exercises_data:
-            existing = db.query(Exercise).filter(Exercise.title == ex["title"]).first()
-            if not existing:
-                db.add(Exercise(**ex))
-        db.commit()
-        print("  [+] Seeded Guided Exercises Library")
-
-        # 3. Seed Students
-        students_seed = [
-            {"email": "student@mindsaathi.demo", "name": "Alex Sharma", "anon": "STU-2048", "dept": "Computer Science & Engineering", "year": 3},
-            {"email": "priya@mindsaathi.demo", "name": "Priya Verma", "anon": "STU-1932", "dept": "Electronics & Communication", "year": 2},
-            {"email": "rohit@mindsaathi.demo", "name": "Rohit Das", "anon": "STU-1044", "dept": "Mechanical Engineering", "year": 4}
-        ]
-
-        created_students = []
-        for s in students_seed:
-            u = db.query(User).filter(User.email == s["email"]).first()
-            if not u:
-                u = User(
-                    email=s["email"],
-                    password_hash=get_password_hash("password123"),
-                    full_name=s["name"],
-                    role=UserRole.STUDENT,
-                    is_active=True,
-                    is_verified=True
-                )
-                db.add(u)
-                db.flush()
-
-                stud = Student(
-                    user_id=u.id,
-                    anonymous_id=s["anon"],
-                    institution_id=inst.id,
-                    department=s["dept"],
-                    year_of_study=s["year"],
-                    preferred_language="en",
-                    onboarding_completed=True
-                )
-                db.add(stud)
-                db.flush()
-
-                # Consents
-                for ct in [ConsentType.WELLNESS_DATA, ConsentType.AI_ANALYSIS, ConsentType.COUNSELOR_ACCESS, ConsentType.INSTITUTIONAL_ANALYTICS]:
-                    db.add(ConsentRecord(student_id=stud.id, consent_type=ct, granted=True))
-
-                created_students.append(stud)
-            else:
-                created_students.append(u.student_profile)
-        db.commit()
-        print("  [+] Seeded Students: student@mindsaathi.demo, priya@mindsaathi.demo, rohit@mindsaathi.demo (Password: password123)")
-
-        # 4. Seed Counselors
-        counselors_seed = [
-            {"email": "counselor@mindsaathi.demo", "name": "Dr. Priya Sharma", "role": "Lead Campus Counselor", "emp": "EMP-9021", "status": VerificationStatus.APPROVED},
-            {"email": "rahul.mehta@mindsaathi.demo", "name": "Dr. Rahul Mehta", "role": "Clinical Counselor", "emp": "EMP-8412", "status": VerificationStatus.APPROVED},
-            {"email": "ananya.singh@mindsaathi.demo", "name": "Dr. Ananya Singh", "role": "Resident Counselor", "emp": "EMP-3914", "status": VerificationStatus.PENDING}
-        ]
-
-        created_counselors = []
-        for c in counselors_seed:
-            u = db.query(User).filter(User.email == c["email"]).first()
-            if not u:
-                u = User(
-                    email=c["email"],
-                    password_hash=get_password_hash("password123"),
-                    full_name=c["name"],
-                    role=UserRole.COUNSELOR,
-                    is_active=True,
-                    is_verified=(c["status"] == VerificationStatus.APPROVED)
-                )
-                db.add(u)
-                db.flush()
-
-                counselor = Counselor(
-                    user_id=u.id,
-                    institution_id=inst.id,
-                    professional_role=c["role"],
-                    employee_id=c["emp"],
-                    department="Student Wellness Center",
-                    verification_status=c["status"],
-                    availability_status=AvailabilityStatus.AVAILABLE
-                )
-                db.add(counselor)
-                db.flush()
-                created_counselors.append(counselor)
-            else:
-                created_counselors.append(u.counselor_profile)
-        db.commit()
-        print("  [+] Seeded Counselors: counselor@mindsaathi.demo, rahul.mehta@mindsaathi.demo, ananya.singh@mindsaathi.demo (Password: password123)")
-
-        # 5. Seed Admin
+        # ==============================================================
+        # 2. DEMO ADMIN — admin@mindsaathi.demo / password123
+        # ==============================================================
         admin_email = "admin@mindsaathi.demo"
         u_admin = db.query(User).filter(User.email == admin_email).first()
         if not u_admin:
             u_admin = User(
                 email=admin_email,
-                password_hash=get_password_hash("password123"),
+                password_hash=get_password_hash(DEMO_PASSWORD),
                 full_name="Dr. Dinesh Walker",
                 role=UserRole.ADMIN,
                 is_active=True,
@@ -197,7 +71,6 @@ def seed():
             )
             db.add(u_admin)
             db.flush()
-
             admin_prof = Admin(
                 user_id=u_admin.id,
                 institution_id=inst.id,
@@ -206,10 +79,152 @@ def seed():
             )
             db.add(admin_prof)
             db.commit()
-            print("  [+] Seeded Admin: admin@mindsaathi.demo (Password: password123)")
+            print(f"  [+] Created Demo Admin: {admin_email} | Password: {DEMO_PASSWORD}")
+        else:
+            # Ensure admin profile exists and is linked to institution
+            if not u_admin.admin_profile:
+                admin_prof = Admin(
+                    user_id=u_admin.id,
+                    institution_id=inst.id,
+                    designation="Dean of Student Wellness & Institutional Affairs",
+                    authorization_status=AuthorizationStatus.AUTHORIZED
+                )
+                db.add(admin_prof)
+                db.commit()
+            elif not u_admin.admin_profile.institution_id:
+                u_admin.admin_profile.institution_id = inst.id
+                db.commit()
+            print(f"  [=] Demo Admin already exists: {admin_email}")
 
-        # 6. Seed Check-ins for primary student Alex (STU-2048)
-        primary_student = created_students[0]
+        # ==============================================================
+        # 3. DEMO COUNSELOR — counselor@mindsaathi.demo / password123
+        # ==============================================================
+        counselor_email = "counselor@mindsaathi.demo"
+        u_counselor = db.query(User).filter(User.email == counselor_email).first()
+        if not u_counselor:
+            u_counselor = User(
+                email=counselor_email,
+                password_hash=get_password_hash(DEMO_PASSWORD),
+                full_name="Dr. Priya Sharma",
+                role=UserRole.COUNSELOR,
+                is_active=True,
+                is_verified=True
+            )
+            db.add(u_counselor)
+            db.flush()
+            counselor_prof = Counselor(
+                user_id=u_counselor.id,
+                institution_id=inst.id,
+                professional_role="Lead Campus Counselor",
+                employee_id="EMP-9021",
+                department="Student Wellness Center",
+                verification_status=VerificationStatus.APPROVED,
+                availability_status=AvailabilityStatus.AVAILABLE
+            )
+            db.add(counselor_prof)
+            db.commit()
+            print(f"  [+] Created Demo Counselor: {counselor_email} | Password: {DEMO_PASSWORD}")
+        else:
+            if not u_counselor.counselor_profile:
+                counselor_prof = Counselor(
+                    user_id=u_counselor.id,
+                    institution_id=inst.id,
+                    professional_role="Lead Campus Counselor",
+                    employee_id="EMP-9021",
+                    department="Student Wellness Center",
+                    verification_status=VerificationStatus.APPROVED,
+                    availability_status=AvailabilityStatus.AVAILABLE
+                )
+                db.add(counselor_prof)
+                db.commit()
+            else:
+                # Ensure approved
+                u_counselor.is_verified = True
+                u_counselor.counselor_profile.verification_status = VerificationStatus.APPROVED
+                u_counselor.counselor_profile.institution_id = inst.id
+                db.commit()
+            print(f"  [=] Demo Counselor already exists: {counselor_email}")
+
+        # ==============================================================
+        # 4. DEMO STUDENT — student@mindsaathi.demo / password123
+        # ==============================================================
+        student_email = "student@mindsaathi.demo"
+        u_student = db.query(User).filter(User.email == student_email).first()
+        if not u_student:
+            u_student = User(
+                email=student_email,
+                password_hash=get_password_hash(DEMO_PASSWORD),
+                full_name="Alex Sharma",
+                role=UserRole.STUDENT,
+                is_active=True,
+                is_verified=True
+            )
+            db.add(u_student)
+            db.flush()
+            # Check for anonymous ID collision
+            anon_id = "STU-2048"
+            if db.query(Student).filter(Student.anonymous_id == anon_id).first():
+                anon_id = "STU-2049"
+            student_prof = Student(
+                user_id=u_student.id,
+                anonymous_id=anon_id,
+                institution_id=inst.id,
+                department="Computer Science & Engineering",
+                year_of_study=3,
+                preferred_language="en",
+                verification_status=VerificationStatus.APPROVED,
+                onboarding_completed=True
+            )
+            db.add(student_prof)
+            db.flush()
+            # Add consent records
+            for ct in [ConsentType.WELLNESS_DATA, ConsentType.AI_ANALYSIS, ConsentType.COUNSELOR_ACCESS, ConsentType.INSTITUTIONAL_ANALYTICS]:
+                db.add(ConsentRecord(student_id=student_prof.id, consent_type=ct, granted=True))
+            db.commit()
+            print(f"  [+] Created Demo Student: {student_email} | Password: {DEMO_PASSWORD}")
+        else:
+            if not u_student.student_profile:
+                student_prof = Student(
+                    user_id=u_student.id,
+                    anonymous_id="STU-2048",
+                    institution_id=inst.id,
+                    department="Computer Science & Engineering",
+                    year_of_study=3,
+                    preferred_language="en",
+                    verification_status=VerificationStatus.APPROVED,
+                    onboarding_completed=True
+                )
+                db.add(student_prof)
+                db.commit()
+            else:
+                u_student.is_verified = True
+                u_student.student_profile.verification_status = VerificationStatus.APPROVED
+                u_student.student_profile.institution_id = inst.id
+                u_student.student_profile.onboarding_completed = True
+                db.commit()
+            print(f"  [=] Demo Student already exists: {student_email}")
+
+        # ==============================================================
+        # 5. Guided Exercises Library
+        # ==============================================================
+        exercises_data = [
+            {"title": "Box Breathing", "description": "Four-count nervous system regulation (Inhale 4s, Hold 4s, Exhale 4s, Rest 4s).", "category": "breathing", "duration_seconds": 120, "instructions": "Sit comfortably. Inhale for 4 counts, hold for 4, exhale for 4, rest for 4.", "recommended_for": "acute_stress"},
+            {"title": "5-4-3-2-1 Grounding", "description": "Sensory awareness when thoughts feel scattered.", "category": "grounding", "duration_seconds": 300, "instructions": "Notice 5 things you see, 4 you feel, 3 you hear, 2 you smell, 1 you taste.", "recommended_for": "panic_anxiety"},
+            {"title": "Thought Reframing", "description": "Examine automatic anxious thoughts and establish constructive alternatives.", "category": "cognitive", "duration_seconds": 300, "instructions": "Identify a worry. Ask: What evidence supports this? What is a more balanced perspective?", "recommended_for": "worry_rumination"},
+            {"title": "Sleep Routine Reset", "description": "Progressive muscular relaxation for restorative rest.", "category": "sleep", "duration_seconds": 480, "instructions": "Progressively tense and release muscles from toes up while breathing gently.", "recommended_for": "insomnia_fatigue"},
+            {"title": "Exam Stress Decompression", "description": "Structured mental reset between study sessions.", "category": "cognitive", "duration_seconds": 240, "instructions": "Take 5 deep breaths, stretch your neck and shoulders, sip water.", "recommended_for": "exam_pressure"}
+        ]
+        for ex in exercises_data:
+            existing = db.query(Exercise).filter(Exercise.title == ex["title"]).first()
+            if not existing:
+                db.add(Exercise(**ex))
+        db.commit()
+        print("  [+] Seeded Guided Exercises Library")
+
+        # ==============================================================
+        # 6. Wellness check-ins for demo student
+        # ==============================================================
+        primary_student = u_student.student_profile if u_student else None
         if primary_student:
             existing_checkins = db.query(WellnessCheckin).filter(WellnessCheckin.student_id == primary_student.id).count()
             if existing_checkins < 5:
@@ -220,33 +235,27 @@ def seed():
                     {"days_ago": 4, "mood": 6, "stress": 6, "energy": 5, "sleep": 6.5, "wellness": 68.0, "emotion": "anxious", "text": "Midterm preparations starting to feel packed."},
                     {"days_ago": 3, "mood": 5, "stress": 7, "energy": 5, "sleep": 5.5, "wellness": 61.0, "emotion": "overwhelmed", "text": "Struggled with late night study session."},
                     {"days_ago": 2, "mood": 4, "stress": 8, "energy": 4, "sleep": 5.0, "wellness": 54.0, "emotion": "overwhelmed", "text": "Exam stress is mounting, feeling exhausted."},
-                    {"days_ago": 1, "mood": 4, "stress": 8, "energy": 4, "sleep": 5.2, "wellness": 52.0, "emotion": "fatigued", "text": "Need to catch up on rest and break down the syllabus."},
+                    {"days_ago": 1, "mood": 4, "stress": 8, "energy": 4, "sleep": 5.2, "wellness": 52.0, "emotion": "fatigued", "text": "Need to catch up on rest."},
                     {"days_ago": 0, "mood": 7, "stress": 5, "energy": 6, "sleep": 6.8, "wellness": 74.0, "emotion": "calm", "text": "Practiced box breathing and mapped out study plan."}
                 ]
                 for cd in checkins_data:
                     dt = now - timedelta(days=cd["days_ago"])
-                    c_obj = WellnessCheckin(
+                    db.add(WellnessCheckin(
                         student_id=primary_student.id,
-                        mood_score=cd["mood"],
-                        stress_score=cd["stress"],
-                        energy_score=cd["energy"],
-                        sleep_hours=cd["sleep"],
-                        sleep_quality=cd["mood"],
-                        academic_stress=cd["stress"],
-                        social_connection=6,
-                        journal_text=cd["text"],
-                        sentiment_score=0.2 if cd["mood"] >= 6 else -0.4,
-                        emotion_label=cd["emotion"],
+                        mood_score=cd["mood"], stress_score=cd["stress"], energy_score=cd["energy"],
+                        sleep_hours=cd["sleep"], sleep_quality=cd["mood"], academic_stress=cd["stress"],
+                        social_connection=6, journal_text=cd["text"],
+                        sentiment_score=0.2 if cd["mood"] >= 6 else -0.4, emotion_label=cd["emotion"],
                         wellness_score=cd["wellness"],
                         risk_level=RiskLevel.HIGH if cd["stress"] >= 8 else RiskLevel.LOW,
-                        created_at=dt,
-                        updated_at=dt
-                    )
-                    db.add(c_obj)
+                        created_at=dt, updated_at=dt
+                    ))
                 db.commit()
-                print("  [+] Seeded 7 Longitudinal Check-ins for Alex (STU-2048)")
+                print("  [+] Seeded 7 Wellness Check-ins for demo student")
 
-        # 7. Seed Private Journal Entries
+        # ==============================================================
+        # 7. Journal entries for demo student
+        # ==============================================================
         if primary_student:
             j_count = db.query(JournalEntry).filter(JournalEntry.student_id == primary_student.id).count()
             if j_count == 0:
@@ -262,66 +271,22 @@ def seed():
                         mood="Reflective"
                     ))
                 db.commit()
-                print("  [+] Seeded AES-Encrypted Private Journal Entries")
+                print("  [+] Seeded AES-Encrypted Journal Entries for demo student")
 
-        # 8. Seed Escalation Cases for Counselor Queue
-        if created_counselors and created_students:
-            counselor_priya = created_counselors[0]
-            existing_cases = db.query(EscalationCase).count()
-            if existing_cases == 0:
-                cases_data = [
-                    {
-                        "student": created_students[0], # STU-2048
-                        "counselor": counselor_priya,
-                        "risk_level": RiskLevel.HIGH,
-                        "risk_score": 82,
-                        "trigger": "Elevated examination pressure and sustained sleep reduction over 4 consecutive days",
-                        "status": EscalationStatus.NEW,
-                        "factors": {"mood": 21, "stress": 17, "sleep": 12, "journal": 18, "checkin": 14, "crisis_indicator": 20}
-                    },
-                    {
-                        "student": created_students[1], # STU-1932
-                        "counselor": counselor_priya,
-                        "risk_level": RiskLevel.MODERATE,
-                        "risk_score": 64,
-                        "trigger": "Placement preparation fatigue and anxiety indicators",
-                        "status": EscalationStatus.MONITORING,
-                        "factors": {"mood": 16, "stress": 14, "sleep": 10, "journal": 12, "checkin": 12, "crisis_indicator": 0}
-                    },
-                    {
-                        "student": created_students[2], # STU-1044
-                        "counselor": created_counselors[1],
-                        "risk_level": RiskLevel.LOW,
-                        "risk_score": 38,
-                        "trigger": "Routine check-in follow-up post internship transition",
-                        "status": EscalationStatus.RESOLVED,
-                        "factors": {"mood": 8, "stress": 8, "sleep": 6, "journal": 6, "checkin": 10, "crisis_indicator": 0}
-                    }
-                ]
-                for cd in cases_data:
-                    c_case = EscalationCase(
-                        student_id=cd["student"].id,
-                        assigned_counselor_id=cd["counselor"].id,
-                        risk_level=cd["risk_level"],
-                        risk_score=cd["risk_score"],
-                        trigger_reason=cd["trigger"],
-                        status=cd["status"],
-                        factors_json=cd["factors"]
-                    )
-                    db.add(c_case)
-                db.commit()
-                print("  [+] Seeded 3 Counselor Priority Triage Cases")
-
-        # 9. Seed Appointments & Sessions
-        if created_counselors and created_students:
-            existing_apts = db.query(Appointment).count()
+        # ==============================================================
+        # 8. Appointment for demo student with demo counselor
+        # ==============================================================
+        demo_counselor_prof = u_counselor.counselor_profile if u_counselor else None
+        if primary_student and demo_counselor_prof:
+            existing_apts = db.query(Appointment).filter(
+                Appointment.student_id == primary_student.id,
+                Appointment.counselor_id == demo_counselor_prof.id
+            ).count()
             if existing_apts == 0:
-                counselor_priya = created_counselors[0]
                 now = datetime.now(timezone.utc)
-                # Upcoming appointment
-                apt_upcoming = Appointment(
-                    student_id=created_students[0].id,
-                    counselor_id=counselor_priya.id,
+                apt = Appointment(
+                    student_id=primary_student.id,
+                    counselor_id=demo_counselor_prof.id,
                     session_type="academic_stress",
                     mode=SessionMode.VIDEO,
                     reason="Academic & Exam Workload Decompression",
@@ -331,48 +296,32 @@ def seed():
                     status=AppointmentStatus.CONFIRMED,
                     student_notes="Seeking strategies to manage mid-semester exam schedule."
                 )
-                db.add(apt_upcoming)
+                db.add(apt)
+                db.commit()
+                print("  [+] Seeded upcoming appointment for demo student & counselor")
 
-                # Completed appointment with session record
-                apt_completed = Appointment(
-                    student_id=created_students[1].id,
-                    counselor_id=counselor_priya.id,
-                    session_type="placement_support",
-                    mode=SessionMode.IN_PERSON,
-                    reason="Placement interview preparation anxiety",
-                    scheduled_start=now - timedelta(days=3),
-                    scheduled_end=now - timedelta(days=3, minutes=-45),
-                    duration_minutes=45,
-                    status=AppointmentStatus.COMPLETED,
-                    counselor_notes="Student showed great receptiveness to grounding techniques."
-                )
-                db.add(apt_completed)
-                db.flush()
-
-                db.add(SessionRecord(
-                    appointment_id=apt_completed.id,
-                    discussion_topics="Interview preparation pacing, cognitive thought reframing, sleep consistency before interview rounds.",
-                    summary="Student reported feeling overwhelmed by concurrent mock tests. Mapped out a 3-point daily preparation schedule.",
-                    recommendations="Practice 5-minute Box Breathing prior to morning sessions; limit preparation past 10:00 PM.",
-                    follow_up_required=True,
-                    next_follow_up_date=now + timedelta(days=7)
+        # ==============================================================
+        # 9. Notifications
+        # ==============================================================
+        if primary_student:
+            existing_notif = db.query(Notification).filter(
+                Notification.user_id == u_student.id,
+                Notification.type == NotificationType.WELLNESS_INSIGHT
+            ).first()
+            if not existing_notif:
+                db.add(Notification(
+                    user_id=u_student.id,
+                    type=NotificationType.WELLNESS_INSIGHT,
+                    title="Daily Reflection Ready",
+                    message="Take 60 seconds to check in with your energy and mood today.",
+                    link_tab="Check-in"
                 ))
                 db.commit()
-                print("  [+] Seeded Appointments & Completed Session Records")
+                print("  [+] Seeded notifications for demo student")
 
-        # 10. Seed Notifications
-        for s in created_students:
-            db.add(Notification(
-                user_id=s.user_id,
-                type=NotificationType.WELLNESS_INSIGHT,
-                title="Daily Reflection Ready",
-                message="Take 60 seconds to check in with your energy and mood today.",
-                link_tab="Check-in"
-            ))
-        db.commit()
-        print("  [+] Seeded Notifications")
-
-        # 11. Seed Audit Logs
+        # ==============================================================
+        # 10. Audit log
+        # ==============================================================
         db.add(AuditLog(
             actor_user_id="SYSTEM",
             actor_role="system",
@@ -381,13 +330,21 @@ def seed():
             resource_id="init"
         ))
         db.commit()
-        print("  [+] Seeded Governance Audit Trail")
 
-        print("[SUCCESS] Database Seed Completed Successfully!")
+        print("\n[SUCCESS] MindSaathi Database Seed Complete!")
+        print("\n" + "="*60)
+        print("  DEMO ACCOUNTS (Password: password123)")
+        print("  Student  : student@mindsaathi.demo")
+        print("  Counselor: counselor@mindsaathi.demo")
+        print("  Admin    : admin@mindsaathi.demo")
+        print("="*60)
+
+    except Exception as e:
+        print(f"[ERROR] Seed failed: {e}")
+        db.rollback()
+        raise
     finally:
         db.close()
 
 if __name__ == "__main__":
     seed()
-
-

@@ -9,6 +9,7 @@ from app.ml.emotion import detect_emotion
 from app.ml.risk_engine import calculate_risk
 from app.ml.crisis_detector import detect_crisis
 from app.services.risk_service import evaluate_and_escalate
+from app.services.behavior_service import compute_baseline, detect_behavioral_changes
 
 # Configurable Scoring Weights
 SCORING_WEIGHTS = {
@@ -83,22 +84,35 @@ def record_checkin(db: Session, student_id: str, data: CheckinCreate) -> Checkin
         sentiment_score=sentiment
     )
 
-    # 3. Check historical frequency
+    # 3. Check historical frequency & longitudinal baseline
     seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
     recent_count = db.query(WellnessCheckin).filter(
         WellnessCheckin.student_id == student_id,
         WellnessCheckin.created_at >= seven_days_ago
     ).count()
 
-    # 4. Multi-factor Risk Engine
+    baseline = compute_baseline(db, student_id, window_days=14)
+    current_metrics = {
+        "mood_score": data.mood_score,
+        "stress_score": data.stress_score,
+        "energy_score": data.energy_score,
+        "sleep_hours": data.sleep_hours,
+        "wellness_score": wellness_score
+    }
+    behavior_data = detect_behavioral_changes(baseline, current_metrics)
+
+    # 4. Multi-factor Risk Engine (incorporating behavioral change)
     risk_info = calculate_risk(
         mood_score=data.mood_score,
         stress_score=data.stress_score,
         sleep_hours=data.sleep_hours,
         sentiment_score=sentiment,
         recent_checkins_count=recent_count,
-        crisis_flag=crisis_res["crisis_indicator"]
+        crisis_flag=crisis_res["crisis_indicator"],
+        behavior_data=behavior_data
     )
+
+    risk_indicator = risk_info["risk_indicator"]
 
     # 5. Persist check-in record
     checkin = WellnessCheckin(
@@ -114,12 +128,13 @@ def record_checkin(db: Session, student_id: str, data: CheckinCreate) -> Checkin
         sentiment_score=sentiment,
         emotion_label=emotion,
         wellness_score=wellness_score,
+        risk_indicator=risk_indicator,   # Phase 1 & 2 calibrated
         risk_level=risk_info["risk_level"]
     )
     db.add(checkin)
     db.flush()
 
-    # 6. Sustained Risk Evaluation & Escalation
+    # 6. Sustained Risk Evaluation & Escalation (with behavioral signals)
     evaluate_and_escalate(db, student_id, checkin, risk_info, crisis_res)
     db.commit()
     db.refresh(checkin)
@@ -151,6 +166,7 @@ def record_checkin(db: Session, student_id: str, data: CheckinCreate) -> Checkin
     return CheckinResponse(
         checkin_id=checkin.id,
         wellness_score=wellness_score,
+        risk_indicator=checkin.risk_indicator,
         risk_level=checkin.risk_level.value,
         emotion=emotion,
         insights=insights,

@@ -22,6 +22,7 @@ class StudentSignupRequest(BaseModel):
     full_name: str
     role: str = "student"
     institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
     department: str = "Computer Science & Engineering"
     year_of_study: int = 2
     preferred_language: str = "en"
@@ -31,6 +32,7 @@ class CounselorSignupRequest(BaseModel):
     password: str = Field(..., min_length=6)
     full_name: str
     institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
     professional_role: str = "Campus Counselor"
     employee_id: str
     department: str = "Student Wellness Center"
@@ -40,6 +42,7 @@ class AdminSignupRequest(BaseModel):
     password: str = Field(..., min_length=6)
     full_name: str
     institution_id: Optional[str] = None
+    institution_name: Optional[str] = None
     designation: str = "Dean of Student Wellness"
     authorization_code: str = "MINDSAATHI_ADMIN_2026"
 

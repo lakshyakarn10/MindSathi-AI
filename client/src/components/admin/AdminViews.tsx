@@ -36,8 +36,10 @@ export function AdminPrivacyBanner() {
 
 // 1. Admin Overview
 export function AdminOverview({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const { counselors } = usePortal();
-  const pendingCount = counselors.filter((c) => c.status === "Pending").length;
+  const { counselors, students, approveCounselor, approveStudent } = usePortal();
+  const pendingCounselors = counselors.filter((c) => c.status === "Pending");
+  const pendingStudents = students.filter((s) => s.status === "Pending");
+  const pendingCount = pendingCounselors.length + pendingStudents.length;
 
   return (
     <main className="mobile-content mx-auto max-w-[1440px]">
@@ -45,13 +47,13 @@ export function AdminOverview({ onNavigate }: { onNavigate: (tab: string) => voi
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="field-label mb-2 flex items-center gap-2">
-            <Building2 size={13} className="text-[#2f9c95]" /> Institutional Analytics · Campus Health & Wellbeing
+            <Building2 size={13} className="text-[#2f9c95]" /> Institutional Administration · Campus Wellness Center
           </div>
           <h1 className="text-[28px] font-extrabold tracking-[-.05em] text-[#18314a] md:text-[32px]">
-            Campus Wellness Overview
+            Campus Wellness & Approvals
           </h1>
           <p className="mt-1.5 text-[14px] text-[#718189]">
-            Privacy-preserving insights into campus-wide student wellbeing.
+            Institutional governance, user verifications, and privacy-preserving insights.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -65,7 +67,7 @@ export function AdminOverview({ onNavigate }: { onNavigate: (tab: string) => voi
             onClick={() => onNavigate("Counselor Management")}
             className="btn btn-teal flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-bold"
           >
-            <UserCheck size={15} /> Counselors ({counselors.filter(c => c.status === 'Active').length} Active)
+            <UserCheck size={15} /> User Approvals ({pendingCount} Pending)
           </button>
         </div>
       </div>
@@ -76,8 +78,10 @@ export function AdminOverview({ onNavigate }: { onNavigate: (tab: string) => voi
       {/* Top Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="card p-5">
-          <div className="field-label">Students Participating</div>
-          <div className="mt-2 text-[30px] font-extrabold text-[#18314a]">4,281</div>
+          <div className="field-label">Active Students</div>
+          <div className="mt-2 text-[30px] font-extrabold text-[#18314a]">
+            {students.filter(s => s.status === "Active").length + 4280}
+          </div>
           <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-[#23645f]">
             <TrendingUp size={13} /> +12% this semester
           </div>
@@ -92,18 +96,20 @@ export function AdminOverview({ onNavigate }: { onNavigate: (tab: string) => voi
         </div>
 
         <div className="card signal-line amber p-5">
-          <div className="field-label">Elevated Stress</div>
-          <div className="mt-2 text-[30px] font-extrabold text-[#18314a]">18%</div>
-          <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-[#b45b53]">
-            <TrendingDown size={13} /> -2.1% from midterm peak
+          <div className="field-label">Pending Verifications</div>
+          <div className="mt-2 text-[30px] font-extrabold text-[#b45b53]">{pendingCount}</div>
+          <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-[#9a602a]">
+            {pendingStudents.length} Students · {pendingCounselors.length} Counselors
           </div>
         </div>
 
         <div className="card p-5">
-          <div className="field-label">Check-in Participation</div>
-          <div className="mt-2 text-[30px] font-extrabold text-[#18314a]">64%</div>
+          <div className="field-label">Campus Counselors</div>
+          <div className="mt-2 text-[30px] font-extrabold text-[#18314a]">
+            {counselors.filter(c => c.status === "Active").length} Active
+          </div>
           <div className="mt-1 flex items-center gap-1 text-[11px] font-bold text-[#23645f]">
-            <TrendingUp size={13} /> +8% from last month
+            <TrendingUp size={13} /> 100% capacity ready
           </div>
         </div>
 
@@ -120,145 +126,149 @@ export function AdminOverview({ onNavigate }: { onNavigate: (tab: string) => voi
         <section className="card p-6">
           <div className="flex items-center justify-between border-b border-[#edf1ef] pb-4">
             <div>
-              <div className="field-label">Semester Wellbeing Trajectory</div>
-              <h2 className="mt-1 text-[18px] font-bold text-[#18314a]">Campus Wellness Trends</h2>
+              <div className="field-label">Campus Wellbeing Index</div>
+              <h2 className="mt-1 text-[18px] font-bold text-[#18314a]">Quarterly Emotional Health Trend</h2>
             </div>
-            <div className="flex gap-1 rounded-lg bg-[#f1f5f3] p-1 text-[10px] font-bold">
-              {["30 days", "90 days", "Semester"].map((t, idx) => (
-                <button
-                  key={t}
-                  onClick={() => toast.info(`Viewing ${t} aggregate`)}
-                  className={`rounded-md px-2.5 py-1 ${idx === 0 ? "bg-white text-[#23645f] shadow-xs" : "text-[#7d8e94]"}`}
-                >
-                  {t}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-[#2f9c95]" />
+              <span className="text-[12px] font-semibold text-[#546b73]">Campus Average</span>
             </div>
           </div>
 
-          <div className="mt-3 flex gap-4 text-[11px] text-[#6d7e86]">
-            <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-[#2f9c95]"/> Campus Wellness Index</span>
-            <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-[#d4b5dc]"/> Academic Stress Pressure</span>
-          </div>
-
-          <div className="relative mt-4 h-[180px] w-full">
-            <svg className="h-full w-full" viewBox="0 0 700 180" preserveAspectRatio="none">
-              <path d="M0 110 C80 100 160 85 240 95 S400 65 500 50 S620 40 700 35" fill="none" stroke="#2f9c95" strokeWidth="3" strokeLinecap="round" />
-              <path d="M0 60 C80 65 160 80 240 70 S400 95 500 110 S620 120 700 135" fill="none" stroke="#d4b5dc" strokeWidth="2.5" strokeDasharray="5 5" />
+          <div className="relative mt-6 h-[220px] w-full">
+            <svg className="h-full w-full" viewBox="0 0 700 220" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="trendGradAdmin" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#2f9c95" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#2f9c95" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M0 140 C100 130 200 90 300 105 S500 65 700 45 L700 220 L0 220 Z"
+                fill="url(#trendGradAdmin)"
+              />
+              <path
+                d="M0 140 C100 130 200 90 300 105 S500 65 700 45"
+                fill="none"
+                stroke="#2f9c95"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
             </svg>
-          </div>
-
-          <div className="mt-4 rounded-xl bg-[#fffaf4] border-l-4 border-[#d28b47] p-3.5 text-[12px] text-[#865d38] leading-5">
-            <strong>AI Institutional Observation:</strong> Student wellness drops correlate with examination intervals. Increasing counselor availability by 25% during midterms historically reduced elevated risk flags by 18%.
           </div>
         </section>
 
-        {/* Department Comparison */}
-        <section className="card p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-[#edf1ef] pb-4">
-              <div>
-                <div className="field-label">Academic Departments</div>
-                <h3 className="mt-1 text-[17px] font-bold text-[#18314a]">Wellness by Department</h3>
-              </div>
-              <span className="text-[11px] font-bold text-[#23645f]">Aggregate Only</span>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3.5">
-              {[
-                { dept: "Computer Science & Eng (CSE)", score: 71, count: 1240 },
-                { dept: "Electronics & Comm (ECE)", score: 74, count: 980 },
-                { dept: "Mechanical Engineering", score: 69, count: 850 },
-                { dept: "Civil & Infrastructure", score: 73, count: 620 },
-                { dept: "Special Cohort (<15 students)", score: 0, count: 11, hidden: true },
-              ].map((d) => (
-                <div key={d.dept} className="rounded-xl border border-[#edf2ef] bg-[#fbfdfc] p-3">
-                  <div className="flex items-center justify-between text-[12px] font-bold">
-                    <span className="text-[#18314a]">{d.dept}</span>
-                    {d.hidden ? (
-                      <span className="text-[10px] text-[#c96862] bg-[#fae9e7] px-2 py-0.5 rounded">
-                        Protected (n &lt; 15)
-                      </span>
-                    ) : (
-                      <span className="text-[#23645f]">{d.score} / 100</span>
-                    )}
-                  </div>
-                  {d.hidden ? (
-                    <div className="mt-1.5 text-[10px] italic text-[#88999e]">
-                      Data hidden to protect student privacy.
-                    </div>
-                  ) : (
-                    <div className="mt-2 h-2 rounded-full bg-[#edf1ef] overflow-hidden">
-                      <div className="h-full rounded-full bg-[#2f9c95]" style={{ width: `${d.score}%` }} />
-                    </div>
-                  )}
-                </div>
-              ))}
+        {/* High Stress Departments */}
+        <section className="card p-6">
+          <div className="flex items-center justify-between border-b border-[#edf1ef] pb-4">
+            <div>
+              <div className="field-label">Cohort Analysis</div>
+              <h2 className="mt-1 text-[18px] font-bold text-[#18314a]">Stress Level by Department</h2>
             </div>
           </div>
 
-          <div className="mt-4 text-[10px] text-[#86979c] flex items-center gap-1.5">
-            <LockKeyhole size={12} /> Small cohort protection enforces minimum group size threshold (k &gt;= 15).
+          <div className="mt-5 space-y-4">
+            {[
+              { dept: "Computer Science & Engineering", stress: 42, students: 840, tag: "Midterm Prep Peak", color: "bg-[#c96862]" },
+              { dept: "Electronics & Communication", stress: 36, students: 620, tag: "Lab Exam Load", color: "bg-[#d28b47]" },
+              { dept: "Mechanical Engineering", stress: 28, students: 510, tag: "Normal Baseline", color: "bg-[#2f9c95]" },
+              { dept: "Management Studies", stress: 24, students: 390, tag: "Manageable", color: "bg-[#2f9c95]" },
+            ].map((d) => (
+              <div key={d.dept} className="rounded-xl border border-[#edf2ef] bg-[#fbfdfc] p-3.5">
+                <div className="flex items-center justify-between text-[13px] font-bold text-[#18314a]">
+                  <span>{d.dept}</span>
+                  <span className="text-[12px] text-[#718288]">{d.stress}% elevated</span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-[#edf1ef]">
+                  <div className={`h-2 rounded-full ${d.color}`} style={{ width: `${d.stress * 2}%` }} />
+                </div>
+                <div className="mt-1.5 flex justify-between text-[10px] text-[#86979c]">
+                  <span>{d.students} students</span>
+                  <span>{d.tag}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </div>
 
-      {/* Pending Verifications & Hotspots */}
+      {/* Pending Verifications & Quick Actions */}
       <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <section className="card p-6">
+        {/* Pending Student Registrations */}
+        <section className="card p-6 border-t-4 border-[#2f9c95]">
           <div className="flex items-center justify-between">
             <div>
-              <div className="field-label">Staffing & Credentials</div>
-              <h3 className="mt-1 text-[17px] font-bold text-[#18314a]">Pending Counselor Verifications ({pendingCount})</h3>
+              <div className="field-label text-[#23645f]">Student Onboarding</div>
+              <h3 className="mt-1 text-[17px] font-bold text-[#18314a]">Pending Students ({pendingStudents.length})</h3>
             </div>
             <button
               onClick={() => onNavigate("Counselor Management")}
               className="text-[12px] font-bold text-[#23645f] hover:underline"
             >
-              Manage all →
+              Review all →
             </button>
           </div>
 
           <div className="mt-4 flex flex-col gap-3">
-            {counselors
-              .filter((c) => c.status === "Pending")
-              .map((c) => (
+            {pendingStudents.length === 0 ? (
+              <div className="rounded-xl bg-[#f4f8f6] p-4 text-center text-[12px] text-[#6d7e86]">
+                ✓ All student registration requests have been reviewed.
+              </div>
+            ) : (
+              pendingStudents.slice(0, 3).map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-xl border border-[#e4eae7] bg-[#fbfdfc] p-3.5">
+                  <div>
+                    <div className="text-[13px] font-bold text-[#18314a]">{s.name}</div>
+                    <div className="text-[11px] text-[#74878e]">{s.department} · Year {s.yearOfStudy} · {s.anonymousId}</div>
+                  </div>
+                  <button
+                    onClick={() => approveStudent(s.id)}
+                    className="btn btn-teal rounded-lg px-3 py-1.5 text-[11px] font-bold"
+                  >
+                    Approve
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Pending Counselor Registrations */}
+        <section className="card p-6 border-t-4 border-[#23645f]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="field-label text-[#23645f]">Staffing & Credentials</div>
+              <h3 className="mt-1 text-[17px] font-bold text-[#18314a]">Pending Counselors ({pendingCounselors.length})</h3>
+            </div>
+            <button
+              onClick={() => onNavigate("Counselor Management")}
+              className="text-[12px] font-bold text-[#23645f] hover:underline"
+            >
+              Review all →
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3">
+            {pendingCounselors.length === 0 ? (
+              <div className="rounded-xl bg-[#f4f8f6] p-4 text-center text-[12px] text-[#6d7e86]">
+                ✓ All counselor applications have been reviewed.
+              </div>
+            ) : (
+              pendingCounselors.slice(0, 3).map((c) => (
                 <div key={c.id} className="flex items-center justify-between rounded-xl border border-[#e4eae7] bg-[#fbfdfc] p-3.5">
                   <div>
                     <div className="text-[13px] font-bold text-[#18314a]">{c.name}</div>
                     <div className="text-[11px] text-[#74878e]">{c.department} · {c.empId}</div>
                   </div>
                   <button
-                    onClick={() => onNavigate("Counselor Management")}
+                    onClick={() => approveCounselor(c.id)}
                     className="btn btn-teal rounded-lg px-3 py-1.5 text-[11px] font-bold"
                   >
-                    Review & Verify
+                    Approve
                   </button>
                 </div>
-              ))}
-          </div>
-        </section>
-
-        <section className="card p-6">
-          <div className="field-label">Institutional Preparedness</div>
-          <h3 className="mt-1 text-[17px] font-bold text-[#18314a]">Campus Stress Period Comparison</h3>
-
-          <div className="mt-4 flex flex-col gap-3">
-            {[
-              { period: "Examination Period", rate: "78%", tag: "Peak Stress Period", color: "bg-[#c96862]" },
-              { period: "Placement Season", rate: "67%", tag: "Elevated Anxiety", color: "bg-[#d28b47]" },
-              { period: "Regular Academic Weeks", rate: "41%", tag: "Manageable Baseline", color: "bg-[#2f9c95]" },
-            ].map((p) => (
-              <div key={p.period} className="rounded-xl border border-[#edf1ef] bg-[#fbfdfc] p-3">
-                <div className="flex justify-between text-[12px] font-bold text-[#18314a]">
-                  <span>{p.period}</span>
-                  <span>{p.rate} elevated stress</span>
-                </div>
-                <div className="mt-2 h-2 rounded-full bg-[#edf1ef]">
-                  <div className={`h-2 rounded-full ${p.color}`} style={{ width: p.rate }} />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </div>
@@ -489,110 +499,344 @@ export function AdminInterventionImpact() {
   );
 }
 
-// 5. Counselor Management & Verification
+// 5. User Management & Verification (Students and Counselors)
 export function AdminCounselorManagement() {
-  const { counselors, approveCounselor, rejectCounselor } = usePortal();
+  const {
+    counselors, approveCounselor, rejectCounselor,
+    students, approveStudent, rejectStudent, refreshAdminData
+  } = usePortal();
+
+  const [activeTab, setActiveTab] = useState<"students" | "counselors">("students");
+  const [search, setSearch] = useState("");
+
+  const pendingStudents = students.filter((s) => s.status === "Pending");
+  const activeStudents = students.filter((s) => s.status === "Active");
+  const pendingCounselors = counselors.filter((c) => c.status === "Pending");
+  const activeCounselors = counselors.filter((c) => c.status === "Active");
+
+  const filteredPendingStudents = pendingStudents.filter(
+    (s) => s.name.toLowerCase().includes(search.toLowerCase()) ||
+           s.email.toLowerCase().includes(search.toLowerCase()) ||
+           s.department.toLowerCase().includes(search.toLowerCase()) ||
+           s.anonymousId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredActiveStudents = activeStudents.filter(
+    (s) => s.name.toLowerCase().includes(search.toLowerCase()) ||
+           s.email.toLowerCase().includes(search.toLowerCase()) ||
+           s.department.toLowerCase().includes(search.toLowerCase()) ||
+           s.anonymousId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredPendingCounselors = pendingCounselors.filter(
+    (c) => c.name.toLowerCase().includes(search.toLowerCase()) ||
+           c.email.toLowerCase().includes(search.toLowerCase()) ||
+           c.department.toLowerCase().includes(search.toLowerCase()) ||
+           c.empId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredActiveCounselors = activeCounselors.filter(
+    (c) => c.name.toLowerCase().includes(search.toLowerCase()) ||
+           c.email.toLowerCase().includes(search.toLowerCase()) ||
+           c.department.toLowerCase().includes(search.toLowerCase()) ||
+           c.empId.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <main className="mobile-content mx-auto max-w-[1440px]">
-      <div className="mb-6">
-        <div className="field-label mb-2">Staffing & Credentials</div>
-        <h1 className="text-[28px] font-extrabold tracking-[-.05em] text-[#18314a] md:text-[32px]">
-          Counselor Management
-        </h1>
-        <p className="mt-1.5 text-[14px] text-[#718189]">
-          Oversee professional credentials, verification requests, and counseling capacity.
-        </p>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="field-label mb-2">Institutional Governance</div>
+          <h1 className="text-[28px] font-extrabold tracking-[-.05em] text-[#18314a] md:text-[32px]">
+            User & Credential Approvals
+          </h1>
+          <p className="mt-1.5 text-[14px] text-[#718189]">
+            Approve campus student registrations, verify counselor clinical credentials, and oversee institutional rosters.
+          </p>
+        </div>
+
+        {/* Sub-tab switcher */}
+        <div className="flex gap-2 rounded-2xl bg-[#f0f5f3] p-1.5 border border-[#dce6e2]">
+          <button
+            onClick={() => { setActiveTab("students"); setSearch(""); }}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition ${
+              activeTab === "students"
+                ? "bg-white text-[#23645f] shadow-xs"
+                : "text-[#6c7f86] hover:text-[#23645f]"
+            }`}
+          >
+            <Users size={15} />
+            Student Requests
+            {pendingStudents.length > 0 && (
+              <span className="rounded-full bg-[#e84855] text-white px-2 py-0.2 text-[10px] font-extrabold">
+                {pendingStudents.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { setActiveTab("counselors"); setSearch(""); }}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-bold transition ${
+              activeTab === "counselors"
+                ? "bg-white text-[#23645f] shadow-xs"
+                : "text-[#6c7f86] hover:text-[#23645f]"
+            }`}
+          >
+            <Stethoscope size={15} />
+            Counselor Credentials
+            {pendingCounselors.length > 0 && (
+              <span className="rounded-full bg-[#f39c12] text-white px-2 py-0.2 text-[10px] font-extrabold">
+                {pendingCounselors.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Pending Counselor Approvals Card */}
-      <section className="card p-6 border-l-4 border-[#2f9c95]">
-        <div className="flex items-center justify-between border-b border-[#edf1ef] pb-4">
-          <div>
-            <div className="field-label text-[#23645f]">Verification Queue</div>
-            <h2 className="mt-1 text-[18px] font-bold text-[#18314a]">Pending Counselor Registrations</h2>
-          </div>
-          <span className="rounded-full bg-[#fcf0e2] px-3 py-1 text-[11px] font-bold text-[#9a602a]">
-            {counselors.filter((c) => c.status === "Pending").length} Awaiting Verification
-          </span>
+      {/* Search and refresh toolbar */}
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b9ba1]" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Search ${activeTab === "students" ? "students by name, email, department..." : "counselors by name, emp id..."}`}
+            className="w-full rounded-xl border border-[#dfe6e3] bg-white pl-10 pr-4 py-2.5 text-[13px] outline-none focus:border-[#2f9c95]"
+          />
         </div>
+        <button
+          onClick={refreshAdminData}
+          className="flex items-center gap-2 rounded-xl border border-[#dfe6e3] bg-white px-3.5 py-2.5 text-[12px] font-bold text-[#556972] hover:border-[#2f9c95]"
+        >
+          <RefreshCw size={14} /> Refresh Queue
+        </button>
+      </div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {counselors
-            .filter((c) => c.status === "Pending")
-            .map((c) => (
-              <div key={c.id} className="rounded-2xl border border-[#e2eae6] bg-[#fbfdfc] p-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[14px] font-bold text-[#18314a]">{c.name}</span>
-                    <span className="rounded-md bg-[#fff7e6] px-2 py-0.5 text-[10px] font-bold text-[#b36b00]">Pending</span>
-                  </div>
-                  <div className="mt-2 text-[12px] text-[#6d7e86]">
-                    <div><strong>Department:</strong> {c.department}</div>
-                    <div><strong>Employee ID:</strong> {c.empId}</div>
-                    <div><strong>Email:</strong> {c.email}</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center gap-2 border-t border-[#edf1ef] pt-3">
-                  <button
-                    onClick={() => approveCounselor(c.id)}
-                    className="btn btn-teal flex-1 rounded-xl py-2 text-[11px] font-bold"
-                  >
-                    Approve Account
-                  </button>
-                  <button
-                    onClick={() => rejectCounselor(c.id)}
-                    className="rounded-xl border border-[#dfe6e3] px-3 py-2 text-[11px] font-bold text-[#71828a] hover:bg-[#fae9e7] hover:text-[#a94e4a]"
-                  >
-                    Reject
-                  </button>
-                </div>
+      {activeTab === "students" ? (
+        <>
+          {/* Pending Student Registrations Queue */}
+          <section className="card p-6 border-l-4 border-[#2f9c95]">
+            <div className="flex items-center justify-between border-b border-[#edf1ef] pb-4">
+              <div>
+                <div className="field-label text-[#23645f]">Verification Queue</div>
+                <h2 className="mt-1 text-[18px] font-bold text-[#18314a]">
+                  Pending Student Registrations ({pendingStudents.length})
+                </h2>
               </div>
-            ))}
-        </div>
-      </section>
+              <span className="rounded-full bg-[#edf6f4] px-3 py-1 text-[11px] font-bold text-[#23645f]">
+                Institutional Administrator Authorization Required
+              </span>
+            </div>
 
-      {/* Active Counselors Table */}
-      <section className="card mt-6 p-6">
-        <h2 className="text-[18px] font-bold text-[#18314a] mb-4">Active Campus Counselors</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[650px] text-left text-[12px]">
-            <thead>
-              <tr className="border-b border-[#edf1ef] text-[10px] font-bold uppercase tracking-[.1em] text-[#8a989d]">
-                <th className="py-3 px-3">Counselor</th>
-                <th className="py-3 px-3">Department</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-3">Active Cases</th>
-                <th className="py-3 px-3">Sessions (Month)</th>
-                <th className="py-3 px-3">Avg Response Time</th>
-                <th className="py-3 px-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f2f6f4]">
-              {counselors
-                .filter((c) => c.status === "Active")
-                .map((c) => (
-                  <tr key={c.id} className="hover:bg-[#f8faf9]">
-                    <td className="py-3.5 px-3 font-bold text-[#18314a]">{c.name}</td>
-                    <td className="py-3.5 px-3 text-[#647881]">{c.department}</td>
-                    <td className="py-3.5 px-3">
-                      <span className="rounded-md bg-[#e6f3f0] px-2 py-0.5 text-[10px] font-bold text-[#23645f]">Active</span>
-                    </td>
-                    <td className="py-3.5 px-3 font-bold">{c.casesCount}</td>
-                    <td className="py-3.5 px-3">{c.sessionsCount}</td>
-                    <td className="py-3.5 px-3 font-semibold text-[#23645f]">{c.responseTime}</td>
-                    <td className="py-3.5 px-3 text-right">
-                      <button onClick={() => toast.info(`Managing profile for ${c.name}`)} className="text-[11px] font-bold text-[#23645f] hover:underline">
-                        Manage
+            {filteredPendingStudents.length === 0 ? (
+              <div className="py-8 text-center text-[13px] text-[#718189]">
+                {pendingStudents.length === 0
+                  ? "✓ No pending student registrations. All student accounts for your institution are approved."
+                  : `No students matching "${search}"`}
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredPendingStudents.map((s) => (
+                  <div key={s.id} className="rounded-2xl border border-[#e2eae6] bg-[#fbfdfc] p-4 flex flex-col justify-between shadow-xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[14px] font-bold text-[#18314a]">{s.name}</span>
+                        <span className="rounded-md bg-[#fff7e6] px-2 py-0.5 text-[10px] font-bold text-[#b36b00]">
+                          Awaiting Approval
+                        </span>
+                      </div>
+                      <div className="mt-3 space-y-1 text-[12px] text-[#63757d]">
+                        <div><strong className="text-[#18314a]">Email:</strong> {s.email}</div>
+                        <div><strong className="text-[#18314a]">Department:</strong> {s.department}</div>
+                        <div><strong className="text-[#18314a]">Year of Study:</strong> Year {s.yearOfStudy}</div>
+                        <div><strong className="text-[#18314a]">Anonymous ID:</strong> <span className="font-mono text-[#23645f]">{s.anonymousId}</span></div>
+                        <div className="text-[11px] text-[#97a6ab] pt-1">Registered {s.createdAt}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center gap-2 border-t border-[#edf1ef] pt-3">
+                      <button
+                        onClick={() => approveStudent(s.id)}
+                        className="btn btn-teal flex-1 rounded-xl py-2 text-[11px] font-bold"
+                      >
+                        <Check size={13} className="inline mr-1" /> Approve Student
                       </button>
-                    </td>
-                  </tr>
+                      <button
+                        onClick={() => rejectStudent(s.id)}
+                        className="rounded-xl border border-[#dfe6e3] px-3 py-2 text-[11px] font-bold text-[#71828a] hover:bg-[#fae9e7] hover:text-[#a94e4a]"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
                 ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </div>
+            )}
+          </section>
+
+          {/* Active Students Roster */}
+          <section className="card mt-6 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[18px] font-bold text-[#18314a]">
+                Approved Students Roster ({activeStudents.length})
+              </h2>
+              <span className="text-[11px] font-medium text-[#788a91]">
+                Authorized for campus wellness bookings and peer support
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px] text-left text-[12px]">
+                <thead>
+                  <tr className="border-b border-[#edf1ef] text-[10px] font-bold uppercase tracking-[.1em] text-[#8a989d]">
+                    <th className="py-3 px-3">Student Name</th>
+                    <th className="py-3 px-3">Email</th>
+                    <th className="py-3 px-3">Anonymous ID</th>
+                    <th className="py-3 px-3">Department</th>
+                    <th className="py-3 px-3">Year</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f2f6f4]">
+                  {filteredActiveStudents.map((s) => (
+                    <tr key={s.id} className="hover:bg-[#f8faf9]">
+                      <td className="py-3.5 px-3 font-bold text-[#18314a]">{s.name}</td>
+                      <td className="py-3.5 px-3 text-[#647881]">{s.email}</td>
+                      <td className="py-3.5 px-3 font-mono text-[#23645f]">{s.anonymousId}</td>
+                      <td className="py-3.5 px-3 text-[#647881]">{s.department}</td>
+                      <td className="py-3.5 px-3 font-semibold">Year {s.yearOfStudy}</td>
+                      <td className="py-3.5 px-3">
+                        <span className="rounded-md bg-[#e6f3f0] px-2 py-0.5 text-[10px] font-bold text-[#23645f]">
+                          Approved & Active
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-3 text-right">
+                        <button
+                          onClick={() => toast.info(`Account record active for ${s.name}`)}
+                          className="text-[11px] font-bold text-[#23645f] hover:underline"
+                        >
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      ) : (
+        <>
+          {/* Pending Counselor Approvals Card */}
+          <section className="card p-6 border-l-4 border-[#23645f]">
+            <div className="flex items-center justify-between border-b border-[#edf1ef] pb-4">
+              <div>
+                <div className="field-label text-[#23645f]">Credential Verification</div>
+                <h2 className="mt-1 text-[18px] font-bold text-[#18314a]">
+                  Pending Counselor Registrations ({pendingCounselors.length})
+                </h2>
+              </div>
+              <span className="rounded-full bg-[#fcf0e2] px-3 py-1 text-[11px] font-bold text-[#9a602a]">
+                {pendingCounselors.length} Awaiting Verification
+              </span>
+            </div>
+
+            {filteredPendingCounselors.length === 0 ? (
+              <div className="py-8 text-center text-[13px] text-[#718189]">
+                {pendingCounselors.length === 0
+                  ? "✓ No pending counselor credentials. All staff accounts for your institution are approved."
+                  : `No counselors matching "${search}"`}
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredPendingCounselors.map((c) => (
+                  <div key={c.id} className="rounded-2xl border border-[#e2eae6] bg-[#fbfdfc] p-4 flex flex-col justify-between shadow-xs">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[14px] font-bold text-[#18314a]">{c.name}</span>
+                        <span className="rounded-md bg-[#fff7e6] px-2 py-0.5 text-[10px] font-bold text-[#b36b00]">
+                          Pending Credentials
+                        </span>
+                      </div>
+                      <div className="mt-3 space-y-1 text-[12px] text-[#63757d]">
+                        <div><strong className="text-[#18314a]">Department:</strong> {c.department}</div>
+                        <div><strong className="text-[#18314a]">Employee ID:</strong> {c.empId}</div>
+                        <div><strong className="text-[#18314a]">Email:</strong> {c.email}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center gap-2 border-t border-[#edf1ef] pt-3">
+                      <button
+                        onClick={() => approveCounselor(c.id)}
+                        className="btn btn-teal flex-1 rounded-xl py-2 text-[11px] font-bold"
+                      >
+                        <Check size={13} className="inline mr-1" /> Approve Credentials
+                      </button>
+                      <button
+                        onClick={() => rejectCounselor(c.id)}
+                        className="rounded-xl border border-[#dfe6e3] px-3 py-2 text-[11px] font-bold text-[#71828a] hover:bg-[#fae9e7] hover:text-[#a94e4a]"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Active Counselors Table */}
+          <section className="card mt-6 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[18px] font-bold text-[#18314a]">
+                Active Campus Counselors ({activeCounselors.length})
+              </h2>
+              <span className="text-[11px] font-medium text-[#788a91]">
+                Authorized for clinical case management and session appointments
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px] text-left text-[12px]">
+                <thead>
+                  <tr className="border-b border-[#edf1ef] text-[10px] font-bold uppercase tracking-[.1em] text-[#8a989d]">
+                    <th className="py-3 px-3">Counselor</th>
+                    <th className="py-3 px-3">Department</th>
+                    <th className="py-3 px-3">Employee ID</th>
+                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Active Cases</th>
+                    <th className="py-3 px-3">Sessions (Month)</th>
+                    <th className="py-3 px-3">Avg Response</th>
+                    <th className="py-3 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f2f6f4]">
+                  {filteredActiveCounselors.map((c) => (
+                    <tr key={c.id} className="hover:bg-[#f8faf9]">
+                      <td className="py-3.5 px-3 font-bold text-[#18314a]">{c.name}</td>
+                      <td className="py-3.5 px-3 text-[#647881]">{c.department}</td>
+                      <td className="py-3.5 px-3 font-mono text-[#52666f]">{c.empId}</td>
+                      <td className="py-3.5 px-3">
+                        <span className="rounded-md bg-[#e6f3f0] px-2 py-0.5 text-[10px] font-bold text-[#23645f]">
+                          Verified & Active
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-3 font-bold">{c.casesCount}</td>
+                      <td className="py-3.5 px-3">{c.sessionsCount}</td>
+                      <td className="py-3.5 px-3 font-semibold text-[#23645f]">{c.responseTime}</td>
+                      <td className="py-3.5 px-3 text-right">
+                        <button onClick={() => toast.info(`Managing clinical profile for ${c.name}`)} className="text-[11px] font-bold text-[#23645f] hover:underline">
+                          Manage
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 }

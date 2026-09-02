@@ -12,12 +12,26 @@ router = APIRouter(prefix="/appointments", tags=["Appointments Management"])
 @router.post("", summary="Student Requests or Schedules Counseling Session")
 def request_session(
     req: AppointmentCreate,
-    current_user: User = Depends(require_student),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     student = current_user.student_profile
     if not student:
-        raise NotFoundError("Student profile not found.")
+        from app.models.student import Student
+        student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    if not student:
+        import uuid
+        from app.models.student import Student
+        anon_id = f"STU-{uuid.uuid4().hex[:6].upper()}"
+        student = Student(
+            user_id=current_user.id,
+            anonymous_id=anon_id,
+            department="Campus Student",
+            year_of_study=1
+        )
+        db.add(student)
+        db.commit()
+        db.refresh(student)
 
     apt = create_student_appointment(db, student, req)
     return {

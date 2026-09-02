@@ -41,7 +41,7 @@ def create_student_appointment(db: Session, student: Student, req: AppointmentCr
         scheduled_start=scheduled_start,
         scheduled_end=scheduled_end,
         duration_minutes=req.duration_minutes,
-        status=AppointmentStatus.CONFIRMED, # Confirmed for demo flow
+        # status not set here — defaults to PENDING from model (Phase 1 fix)
         student_notes=req.student_notes
     )
     db.add(apt)
@@ -67,12 +67,12 @@ def create_student_appointment(db: Session, student: Student, req: AppointmentCr
     )
     db.add(notif_counselor)
 
-    # Send Confirmation Notification to Student
+    # Send Request Notification to Student
     notif_student = Notification(
         user_id=student.user_id,
         type=NotificationType.SESSION_SCHEDULED,
-        title="Counseling Session Confirmed",
-        message=f"Your session is confirmed for {scheduled_start.strftime('%b %d, %Y at %I:%M %p')}.",
+        title="Counseling Session Requested",
+        message=f"Your session request has been submitted for {scheduled_start.strftime('%b %d, %Y at %I:%M %p')} and is pending counselor confirmation.",
         reference_type="appointment",
         reference_id=apt.id,
         link_tab="Support"
@@ -170,6 +170,133 @@ def cancel_appointment(db: Session, appointment_id: str, reason: str, actor_user
         reference_id=apt.id
     )
     db.add(notif)
+
+    db.commit()
+    db.refresh(apt)
+    return apt
+
+def reject_appointment(db: Session, appointment_id: str, rejection_reason: Optional[str], counselor_user_id: str) -> Appointment:
+    apt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not apt:
+        raise NotFoundError("Appointment not found.")
+
+    apt.status = AppointmentStatus.REJECTED
+    apt.rejection_reason = rejection_reason
+
+    # Notify student
+    student = db.query(Student).filter(Student.id == apt.student_id).first()
+    if student:
+        counselor_name = apt.counselor.user.full_name if apt.counselor and apt.counselor.user else "Counselor"
+        orig_time = apt.scheduled_start.strftime("%b %d, %Y at %I:%M %p")
+        reason_text = f" Reason: {rejection_reason}" if rejection_reason else ""
+        notif = Notification(
+            user_id=student.user_id,
+            type=NotificationType.SYSTEM,
+            title="Counseling Request Declined",
+            message=f"Dr. {counselor_name} was unable to accept your {apt.session_type} request for {orig_time}.{reason_text}",
+            reference_type="appointment",
+            reference_id=apt.id,
+            link_tab="Support"
+        )
+        db.add(notif)
+
+    # Audit
+    audit = AuditLog(
+        actor_user_id=counselor_user_id,
+        actor_role="counselor",
+        action="COUNSELOR_REJECTED_APPOINTMENT",
+        resource_type="appointment",
+        resource_id=apt.id
+    )
+    db.add(audit)
+
+    db.commit()
+    db.refresh(apt)
+    return apt
+
+def suggest_alternative_time(db: Session, appointment_id: str, new_start: datetime, message: Optional[str], counselor_user_id: str) -> Appointment:
+    apt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not apt:
+        raise NotFoundError("Appointment not found.")
+
+    apt.scheduled_start = new_start
+    apt.scheduled_end = new_start + timedelta(minutes=apt.duration_minutes)
+    apt.status = AppointmentStatus.RESCHEDULED
+
+    student = db.query(Student).filter(Student.id == apt.student_id).first()
+    if student:
+        counselor_name = apt.counselor.user.full_name if apt.counselor and apt.counselor.user else "Counselor"
+        formatted_time = new_start.strftime("%b %d, %Y at %I:%M %p")
+        msg_text = f" Note: {message}" if message else ""
+        notif = Notification(
+            user_id=student.user_id,
+            type=NotificationType.SESSION_SCHEDULED,
+            title="Alternative Session Time Suggested",
+            message=f"Dr. {counselor_name} suggested an alternative time for your counseling session: {formatted_time}.{msg_text}",
+            reference_type="appointment",
+            reference_id=apt.id,
+            link_tab="Support"
+        )
+        db.add(notif)
+
+    audit = AuditLog(
+        actor_user_id=counselor_user_id,
+        actor_role="counselor",
+        action="COUNSELOR_SUGGESTED_TIME",
+        resource_type="appointment",
+        resource_id=apt.id
+    )
+    db.add(audit)
+
+    db.commit()
+    db.refresh(apt)
+    return apt
+
+def set_appointment_meet_url(db: Session, appointment_id: str, meet_url: str, counselor_user_id: str) -> Appointment:
+    apt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not apt:
+        raise NotFoundError("Appointment not found.")
+
+    cleaned_url = meet_url.strip() if meet_url else ""
+    if not cleaned_url.startswith("https://") or len(cleaned_url) < 10 or "." not in cleaned_url:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="meet_url must be a valid HTTPS URL (e.g. https://meet.google.com/xyz-abc-def)")
+
+    apt.meet_url = cleaned_url
+
+    audit = AuditLog(
+        actor_user_id=counselor_user_id,
+        actor_role="counselor",
+        action="COUNSELOR_SET_MEET_URL",
+        resource_type="appointment",
+        resource_id=apt.id
+    )
+    db.add(audit)
+
+    db.commit()
+    db.refresh(apt)
+    return apt
+
+def set_appointment_location(db: Session, appointment_id: str, location: str, counselor_user_id: str) -> Appointment:
+    apt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not apt:
+        raise NotFoundError("Appointment not found.")
+
+    cleaned_loc = location.strip() if location else ""
+    if not cleaned_loc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="location cannot be empty.")
+
+    apt.location = cleaned_loc
+
+    audit = AuditLog(
+        actor_user_id=counselor_user_id,
+        actor_role="counselor",
+        action="COUNSELOR_SET_LOCATION",
+        resource_type="appointment",
+        resource_id=apt.id
+    )
+    db.add(audit)
 
     db.commit()
     db.refresh(apt)

@@ -3,7 +3,7 @@ from app.api.routes import (
     health, auth, users, students, counselors, admins,
     checkins, wellness, risk, journal, companion,
     exercises, appointments, sessions, messages,
-    notifications, analytics, reports, privacy, institutions
+    notifications, analytics, reports, privacy, institutions, chat_ws
 )
 
 api_router = APIRouter()
@@ -28,4 +28,6 @@ api_router.include_router(analytics.router)
 api_router.include_router(reports.router)
 api_router.include_router(privacy.router)
 api_router.include_router(institutions.router)
+api_router.include_router(chat_ws.router)
+
 

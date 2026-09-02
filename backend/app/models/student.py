@@ -1,17 +1,20 @@
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.models.counselor import VerificationStatus
+
 
 class Student(Base):
     __tablename__ = "students"
 
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    anonymous_id = Column(String(50), unique=True, index=True, nullable=False) # e.g. STU-2048
+    anonymous_id = Column(String(50), unique=True, index=True, nullable=False)  # e.g. STU-2048
     institution_id = Column(String(36), ForeignKey("institutions.id"), nullable=True)
     department = Column(String(100), default="Computer Science & Engineering", nullable=False)
     year_of_study = Column(Integer, default=2, nullable=False)
     preferred_language = Column(String(20), default="en", nullable=False)
     timezone = Column(String(50), default="Asia/Kolkata", nullable=False)
+    verification_status = Column(SQLEnum(VerificationStatus), default=VerificationStatus.PENDING, nullable=False)
     onboarding_completed = Column(Boolean, default=False, nullable=False)
 
     # Relationships
@@ -23,3 +26,9 @@ class Student(Base):
     escalation_cases = relationship("EscalationCase", back_populates="student")
     consent_records = relationship("ConsentRecord", back_populates="student", cascade="all, delete-orphan")
     exercise_completions = relationship("ExerciseCompletion", back_populates="student", cascade="all, delete-orphan")
+    # Phase 1 addition — companion conversation sessions
+    companion_conversations = relationship(
+        "CompanionConversation",
+        back_populates="student",
+        cascade="all, delete-orphan"
+    )
