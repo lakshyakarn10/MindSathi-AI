@@ -3,13 +3,11 @@ services:
     name: mindsaathi-backend
     env: python
     rootDir: backend
-    buildCommand: "pip install -r requirements.txt && alembic upgrade head && python seed.py"
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: mindsaathi-db
-          property: connectionString
+        sync: false          # Set manually in Render dashboard (Supabase URL)
       - key: ENVIRONMENT
         value: production
       - key: JWT_ALGORITHM
@@ -19,18 +17,14 @@ services:
       - key: REFRESH_TOKEN_EXPIRE_DAYS
         value: "7"
       - key: JWT_SECRET_KEY
-        generateValue: true
+        sync: false          # Set manually - use your existing JWT_SECRET_KEY
       - key: JOURNAL_ENCRYPTION_KEY
-        generateValue: true
+        sync: false          # Set manually - use your existing JOURNAL_ENCRYPTION_KEY
       - key: GEMINI_MODEL
-        value: gemini-1.5-flash
+        value: gemini-2.5-flash
       - key: GEMINI_API_KEY
-        sync: false
+        sync: false          # Set manually in Render dashboard
+      - key: GEMINI_API_BASE_URL
+        value: https://generativelanguage.googleapis.com
       - key: FRONTEND_ORIGIN
-        sync: false
-
-databases:
-  - name: mindsaathi-db
-    databaseName: mindsaathi
-    user: mindsaathi
-    plan: free
+        sync: false          # Set after Vercel deploy
