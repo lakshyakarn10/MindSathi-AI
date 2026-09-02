@@ -130,7 +130,7 @@ def generate_gemini_companion_response(
 
         for m_name in models_to_try:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={key}"
+                url = f"{settings.GEMINI_API_BASE_URL}/v1beta/models/{m_name}:generateContent?key={key}"
                 with httpx.Client(timeout=15.0) as client:
                     resp = client.post(url, json=payload)
                     # If model doesn't support thinkingConfig (400), retry without thinkingConfig

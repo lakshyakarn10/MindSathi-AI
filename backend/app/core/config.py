@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     # Google Gemini AI Configuration
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-flash-lite-latest"
+    GEMINI_API_BASE_URL: str = "https://generativelanguage.googleapis.com"
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
